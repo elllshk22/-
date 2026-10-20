@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NLP Quiz · Терминал</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070a;
+  --bg-2:#0a0f15;
+  --panel:#0d141c;
+  --border:#1a2634;
+  --cyan:#00e5ff;
+  --cyan-soft:#66f0ff;
+  --violet:#b05cff;
+  --violet-soft:#d59aff;
+  --green:#00ff9d;
+  --red:#ff3860;
+  --yellow:#ffcc00;
+  --text:#c8e0f0;
+  --muted:#5c7688;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;
+  font-family:'JetBrains Mono', monospace;
+  color:var(--text);
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(176,92,255,.15), transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(0,229,255,.12), transparent 55%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
+  background-attachment:fixed;
+  overflow-x:hidden;
+  padding:24px 16px 80px;
+}
+
+/* сетка-фон */
+body::before{
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none; z-index:0;
+  animation:gridMove 20s linear infinite;
+}
+@keyframes gridMove{
+  0%{transform:translate(0,0)}
+  100%{transform:translate(40px,40px)}
+}
+
+.wrap{
+  position:relative; z-index:1;
+  max-width:820px; margin:0 auto;
+}
+
+/* шапка */
+.terminal-header{
+  display:flex; align-items:center; gap:8px;
+  padding:12px 16px;
+  background:rgba(13,20,28,.85);
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:12px 12px 0 0;
+  backdrop-filter:blur(8px);
+}
+.terminal-header .dot{
+  width:12px; height:12px; border-radius:50%;
+}
+.dot.r{background:#ff5f57}
+.dot.y{background:#febc2e}
+.dot.g{background:#28c840}
+.terminal-header .title{
+  margin-left:12px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:13px; color:var(--muted);
+  letter-spacing:.1em;
+}
+
+/* main card */
+.card{
+  background:rgba(13,20,28,.92);
+  border:1px solid var(--border);
+  border-radius:0 0 12px 12px;
+  padding:32px 28px 28px;
+  backdrop-filter:blur(8px);
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,.08),
+    0 20px 60px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+/* статус-бар */
+.status{
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:12px;
+  padding:14px 18px;
+  background:rgba(5,7,10,.7);
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:28px;
+  font-size:13px;
+}
+.status-item{
+  display:flex; align-items:center; gap:8px;
+  color:var(--muted);
+  letter-spacing:.06em;
+}
+.status-item b{
+  color:var(--cyan);
+  font-family:'Share Tech Mono', monospace;
+  font-size:15px;
+}
+.status-item.score b{color:var(--green)}
+.status-item.time b{color:var(--yellow)}
+.status-item.progress b{color:var(--violet-soft)}
+
+/* таймер-бар */
+.timer-bar{
+  height:4px; background:rgba(0,229,255,.08);
+  border-radius:999px; overflow:hidden;
+  margin-bottom:28px;
+}
+.timer-fill{
+  height:100%; width:100%;
+  background:linear-gradient(90deg, var(--cyan), var(--violet));
+  border-radius:999px;
+  transition:width 1s linear;
+  box-shadow:0 0 12px rgba(0,229,255,.6);
+}
+
+/* вопрос */
+.q-num{
+  font-family:'Share Tech Mono', monospace;
+  font-size:13px;
+  color:var(--cyan);
+  letter-spacing:.2em;
+  margin-bottom:10px;
+  display:flex; align-items:center; gap:8px;
+}
+.q-num::before{
+  content:'▸';
+  color:var(--violet);
+  font-size:16px;
+}
+.question{
+  font-family:'JetBrains Mono', monospace;
+  font-size:clamp(17px, 2.4vw, 22px);
+  font-weight:700;
+  line-height:1.45;
+  color:#eaf5ff;
+  margin:0 0 28px;
+  text-shadow:0 0 20px rgba(0,229,255,.15);
+}
+
+/* опции */
+.options{
+  display:flex; flex-direction:column; gap:10px;
+}
+.option{
+  display:flex; align-items:center; gap:14px;
+  padding:16px 20px;
+  background:rgba(10,15,21,.6);
+  border:1px solid var(--border);
+  border-radius:10px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:15px;
+  color:var(--text);
+  text-align:left;
+  transition:all .2s;
+  position:relative;
+  overflow:hidden;
+}
+.option::before{
+  content:'';
+  position:absolute; left:0; top:0; bottom:0;
+  width:3px;
+  background:var(--cyan);
+  transform:scaleY(0);
+  transition:transform .2s;
+}
+.option:hover:not(:disabled){
+  border-color:var(--cyan);
+  background:rgba(0,229,255,.05);
+  transform:translateX(4px);
+}
+.option:hover:not(:disabled)::before{
+  transform:scaleY(1);
+}
+.option:disabled{cursor:not-allowed}
+.option .key{
+  flex:0 0 32px; height:32px;
+  display:grid; place-items:center;
+  background:rgba(0,229,255,.1);
+  border:1px solid rgba(0,229,255,.3);
+  border-radius:6px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:14px; font-weight:700;
+  color:var(--cyan);
+  transition:all .2s;
+}
+.option:hover:not(:disabled) .key{
+  background:var(--cyan); color:#05070a;
+}
+.option .text{flex:1}
+.option.correct{
+  border-color:var(--green);
+  background:rgba(0,255,157,.1);
+}
+.option.correct .key{
+  background:var(--green); color:#05070a; border-color:var(--green);
+}
+.option.correct::before{background:var(--green); transform:scaleY(1)}
+.option.wrong{
+  border-color:var(--red);
+  background:rgba(255,56,96,.1);
+}
+.option.wrong .key{
+  background:var(--red); color:#fff; border-color:var(--red);
+}
+.option.wrong::before{background:var(--red); transform:scaleY(1)}
+.option.dim{
+  opacity:.4;
+}
+
+/* объяснение */
+.explanation{
+  margin-top:20px;
+  padding:18px 20px;
+  background:linear-gradient(135deg, rgba(0,255,157,.06), rgba(0,229,255,.04));
+  border:1px solid rgba(0,255,157,.25);
+  border-left:4px solid var(--green);
+  border-radius:8px;
+  font-size:14px;
+  line-height:1.6;
+  color:#d5f4e6;
+  opacity:0;
+  transform:translateY(10px);
+  transition:all .4s;
+  display:none;
+}
+.explanation.show{
+  opacity:1; transform:none; display:block;
+}
+.explanation .label{
+  font-family:'Share Tech Mono', monospace;
+  font-size:11px;
+  color:var(--green);
+  letter-spacing:.2em;
+  margin-bottom:6px;
+  text-transform:uppercase;
+}
+
+/* кнопка дальше */
+.next-btn{
+  display:none;
+  margin-top:24px;
+  width:100%;
+  padding:16px;
+  background:linear-gradient(135deg, var(--violet), var(--cyan));
+  border:none;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:15px; font-weight:700;
+  color:#05070a;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 8px 24px rgba(176,92,255,.3);
+  transition:all .2s;
+}
+.next-btn.show{display:block}
+.next-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(176,92,255,.5);
+}
+
+/* экран старта */
+.start-screen{
+  text-align:center;
+  padding:20px 0;
+}
+.start-screen h1{
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(28px, 5vw, 44px);
+  margin:0 0 12px;
+  color:#eaf5ff;
+  letter-spacing:.05em;
+  text-shadow:
+    0 0 30px rgba(0,229,255,.5),
+    0 0 60px rgba(176,92,255,.3);
+}
+.start-screen h1 .accent{
+  color:var(--cyan);
+}
+.start-screen .subtitle{
+  color:var(--muted);
+  font-size:14px;
+  margin-bottom:36px;
+  letter-spacing:.1em;
+}
+.rules{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+  gap:14px;
+  margin:32px 0;
+  text-align:left;
+}
+.rule{
+  padding:18px;
+  background:rgba(0,229,255,.04);
+  border:1px solid rgba(0,229,255,.15);
+  border-radius:10px;
+}
+.rule .emoji{font-size:24px; margin-bottom:8px}
+.rule .num{
+  font-family:'Share Tech Mono', monospace;
+  font-size:22px; font-weight:700;
+  color:var(--green);
+  margin-bottom:4px;
+}
+.rule .desc{
+  font-size:13px; color:var(--muted);
+  line-height:1.4;
+}
+.start-btn{
+  margin-top:16px;
+  padding:18px 48px;
+  background:linear-gradient(135deg, var(--cyan), var(--violet));
+  border:none;
+  border-radius:12px;
+  font-family:inherit;
+  font-size:17px; font-weight:900;
+  color:#05070a;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 12px 40px rgba(0,229,255,.4);
+  transition:all .2s;
+}
+.start-btn:hover{
+  transform:translateY(-3px) scale(1.02);
+  box-shadow:0 20px 60px rgba(176,92,255,.5);
+}
+
+/* экран финала */
+.finish-screen{text-align:center; padding:20px 0}
+.finish-screen .trophy{
+  font-size:80px;
+  line-height:1;
+  margin-bottom:20px;
+  animation:float 3s ease-in-out infinite;
+  filter:drop-shadow(0 0 30px rgba(255,204,0,.6));
+}
+@keyframes float{
+  0%,100%{transform:translateY(0) rotate(-3deg)}
+  50%{transform:translateY(-14px) rotate(3deg)}
+}
+.finish-screen h2{
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(24px, 4vw, 36px);
+  color:#eaf5ff;
+  margin:0 0 12px;
+  letter-spacing:.05em;
+}
+.finish-screen .rank{
+  font-family:'Share Tech Mono', monospace;
+  font-size:20px;
+  color:var(--cyan);
+  margin-bottom:32px;
+  letter-spacing:.15em;
+}
+.final-score{
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(64px, 12vw, 96px);
+  font-weight:900;
+  background:linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  line-height:1;
+  margin:16px 0;
+  filter:drop-shadow(0 0 20px rgba(0,229,255,.3));
+}
+.final-score .max{
+  font-size:24px;
+  color:var(--muted);
+  -webkit-text-fill-color:var(--muted);
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:12px;
+  margin:32px 0;
+}
+.stat{
+  padding:16px;
+  background:rgba(0,229,255,.04);
+  border:1px solid rgba(0,229,255,.15);
+  border-radius:10px;
+}
+.stat .v{
+  font-family:'Share Tech Mono', monospace;
+  font-size:24px; font-weight:700;
+  color:var(--cyan);
+  margin-bottom:4px;
+}
+.stat .v.green{color:var(--green)}
+.stat .v.red{color:var(--red)}
+.stat .l{
+  font-size:12px; color:var(--muted);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+/* глитч на финале */
+.glitch{
+  position:relative;
+  display:inline-block;
+}
+.glitch::before, .glitch::after{
+  content:attr(data-text);
+  position:absolute;
+  left:0; top:0;
+  width:100%;
+}
+.glitch::before{
+  color:var(--cyan);
+  animation:glitch1 2s infinite linear alternate-reverse;
+  clip-path:polygon(0 0, 100% 0, 100% 45%, 0 45%);
+}
+.glitch::after{
+  color:var(--violet);
+  animation:glitch2 1.5s infinite linear alternate-reverse;
+  clip-path:polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+}
+@keyframes glitch1{
+  0%{transform:translate(0)}
+  20%{transform:translate(-2px, 1px)}
+  40%{transform:translate(2px, -1px)}
+  60%{transform:translate(-1px, 2px)}
+  80%{transform:translate(1px, -2px)}
+  100%{transform:translate(0)}
+}
+@keyframes glitch2{
+  0%{transform:translate(0)}
+  25%{transform:translate(2px, -1px)}
+  50%{transform:translate(-2px, 1px)}
+  75%{transform:translate(1px, 2px)}
+  100%{transform:translate(0)}
+}
+
+.hidden{display:none}
+
+@media (max-width:600px){
+  .card{padding:24px 18px 20px}
+  .option{padding:14px 16px; font-size:14px}
+  .status{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="terminal-header">
+    <span class="dot r"></span>
+    <span class="dot y"></span>
+    <span class="dot g"></span>
+    <span class="title">nlp_quiz.exe · v1.0</span>
+  </div>
+
+  <div class="card">
+
+    <!-- СТАРТ -->
+    <div id="startScreen" class="start-screen">
+      <h1><span class="accent">NLP</span> QUIZ</h1>
+      <div class="subtitle">// проверь себя · 5 вопросов</div>
+
+      <div class="rules">
+        <div class="rule">
+          <div class="emoji">✅</div>
+          <div class="num">+100</div>
+          <div class="desc">за правильный ответ</div>
+        </div>
+        <div class="rule">
+          <div class="emoji">⚡</div>
+          <div class="num">+10 / сек</div>
+          <div class="desc">бонус за скорость (макс +150)</div>
+        </div>
+        <div class="rule">
+          <div class="emoji">❌</div>
+          <div class="num">−30</div>
+          <div class="desc">за неправильный ответ</div>
+        </div>
+      </div>
+
+      <button class="start-btn" id="startBtn">▶ Запустить</button>
+    </div>
+
+    <!-- ВОПРОС -->
+    <div id="quizScreen" class="hidden">
+      <div class="status">
+        <div class="status-item progress">вопрос <b id="qCur">1</b> / <b id="qTotal">5</b></div>
+        <div class="status-item score">счёт <b id="score">0</b></div>
+        <div class="status-item time">⏱ <b id="timer">15</b>с</div>
+      </div>
+
+      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+
+      <div class="q-num" id="qNum">ВОПРОС 01</div>
+      <p class="question" id="questionText"></p>
+
+      <div class="options" id="options"></div>
+
+      <div class="explanation" id="explanation">
+        <div class="label">// объяснение</div>
+        <div id="explanationText"></div>
+      </div>
+
+      <button class="next-btn" id="nextBtn">Продолжить →</button>
+    </div>
+
+    <!-- ФИНАЛ -->
+    <div id="finishScreen" class="finish-screen hidden">
+      <div class="trophy">🏆</div>
+      <h2 class="glitch" data-text="ТЕСТ ЗАВЕРШЁН">ТЕСТ ЗАВЕРШЁН</h2>
+      <div class="rank" id="rankText">// загрузка…</div>
+
+      <div class="final-score">
+        <span id="finalScore">0</span><span class="max"> / 1250</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="v green" id="statCorrect">0</div>
+          <div class="l">правильных</div>
+        </div>
+        <div class="stat">
+          <div class="v red" id="statWrong">0</div>
+          <div class="l">неправильных</div>
+        </div>
+        <div class="stat">
+          <div class="v" id="statTime">0с</div>
+          <div class="l">общее время</div>
+        </div>
+      </div>
+
+      <button class="start-btn" id="restartBtn">↻ Ещё раз</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ======================= ВОПРОСЫ ======================= */
+const QUESTIONS = [
+  {
+    text: 'Что делает лемматизация?',
+    options: [
+      'отсекает окончания слов',
+      'приводит слово к словарной форме',
+      'удаляет стоп-слова'
+    ],
+    correct: 1,
+    explanation: 'Лемматизация использует словарь и часть речи и возвращает настоящее слово. Стемминг лишь отсекает окончания по правилам.'
+  },
+  {
+    text: 'Какой метод векторизации учитывает контекст, в котором стоит слово?',
+    options: [
+      'Bag of Words',
+      'TF-IDF',
+      'BERT'
+    ],
+    correct: 2,
+    explanation: 'BoW и TF-IDF статичны: вектор слова не зависит от предложения. BERT строит представление слова из его окружения.'
+  },
+  {
+    text: 'Каким будет вес TF-IDF у слова, которое встречается во всех документах коллекции?',
+    options: [
+      'максимальным',
+      'близким к нулю',
+      'равным его частоте'
+    ],
+    correct: 1,
+    explanation: 'log(N / df) → log(1) = 0: слово, которое есть везде, ничего не различает между документами.'
+  },
+  {
+    text: 'Чем подсловная токенизация (BPE) лучше пословной?',
+    options: [
+      'последовательности короче',
+      'решает проблему редких и неизвестных слов',
+      'словарь не нужен'
+    ],
+    correct: 1,
+    explanation: '«предобработка» собирается из знакомых частей [пред, обработ, ка] — редкие и новые слова перестают быть проблемой.'
+  },
+  {
+    text: 'Почему векторизатор TF-IDF обучают только на обучающей выборке?',
+    options: [
+      'чтобы ускорить обучение',
+      'чтобы уменьшить словарь',
+      'чтобы избежать утечки данных'
+    ],
+    correct: 2,
+    explanation: 'Если обучить векторизатор на всех данных, модель «подглядит» в тест — оценка качества будет завышенной.'
+  }
+];
+
+/* ======================= КОНСТАНТЫ ======================= */
+const POINTS_CORRECT   = 100;
+const POINTS_WRONG     = -30;
+const POINTS_PER_SEC   = 10;
+const MAX_TIME         = 15;
+const MAX_SCORE        = QUESTIONS.length * (POINTS_CORRECT + MAX_TIME * POINTS_PER_SEC);
+
+/* ======================= СОСТОЯНИЕ ======================= */
+let currentIdx = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let totalTime = 0;
+let timeLeft = MAX_TIME;
+let timerInterval = null;
+let answered = false;
+
+/* ======================= DOM ======================= */
+const $ = id => document.getElementById(id);
+const startScreen = $('startScreen');
+const quizScreen  = $('quizScreen');
+const finishScreen= $('finishScreen');
+const qNum        = $('qNum');
+const questionText= $('questionText');
+const optionsBox  = $('options');
+const explanation = $('explanation');
+const explanationText = $('explanationText');
+const nextBtn     = $('nextBtn');
+const scoreEl     = $('score');
+const timerEl     = $('timer');
+const timerFill   = $('timerFill');
+const qCur        = $('qCur');
+
+/* ======================= ЛОГИКА ======================= */
+function startQuiz(){
+  currentIdx = 0;
+  score = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  totalTime = 0;
+  scoreEl.textContent = '0';
+  qTotal.textContent = QUESTIONS.length;
+  startScreen.classList.add('hidden');
+  finishScreen.classList.add('hidden');
+  quizScreen.classList.remove('hidden');
+  showQuestion();
+}
+
+function showQuestion(){
+  answered = false;
+  const q = QUESTIONS[currentIdx];
+  qCur.textContent = currentIdx + 1;
+  qNum.textContent = `ВОПРОС ${String(currentIdx + 1).padStart(2, '0')}`;
+  questionText.textContent = q.text;
+
+  optionsBox.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="key">${String.fromCharCode(65 + i)}</span><span class="text">${opt}</span>`;
+    btn.addEventListener('click', () => handleAnswer(i, btn));
+    optionsBox.appendChild(btn);
+  });
+
+  explanation.classList.remove('show');
+  explanation.style.display = 'none';
+  nextBtn.classList.remove('show');
+
+  // таймер
+  timeLeft = MAX_TIME;
+  timerEl.textContent = timeLeft;
+  timerFill.style.width = '100%';
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = Math.max(0, timeLeft);
+    timerFill.style.width = ((timeLeft / MAX_TIME) * 100) + '%';
+    if (timeLeft <= 0){
+      clearInterval(timerInterval);
+      handleTimeout();
+    }
+  }, 1000);
+}
+
+function handleAnswer(chosenIdx, btnEl){
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const q = QUESTIONS[currentIdx];
+  const isCorrect = chosenIdx === q.correct;
+  const secondsSpent = MAX_TIME - timeLeft;
+  totalTime += secondsSpent;
+
+  // блокируем все кнопки
+  const buttons = optionsBox.querySelectorAll('.option');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.correct) b.classList.add('correct');
+    else if (i === chosenIdx) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+
+  if (isCorrect){
+    const bonus = timeLeft * POINTS_PER_SEC;
+    score += POINTS_CORRECT + bonus;
+    correctCount++;
+    explanationText.innerHTML = `<b style="color:var(--green)">+${POINTS_CORRECT + bonus}</b> очков (${POINTS_CORRECT} + ${bonus} за скорость)<br><br>${q.explanation}`;
+  } else {
+    score += POINTS_WRONG;
+    wrongCount++;
+    explanationText.innerHTML = `<b style="color:var(--red)">${POINTS_WRONG}</b> очков<br><br>${q.explanation}`;
+  }
+
+  scoreEl.textContent = score;
+  explanation.style.display = 'block';
+  requestAnimationFrame(() => explanation.classList.add('show'));
+  nextBtn.classList.add('show');
+  nextBtn.textContent = (currentIdx === QUESTIONS.length - 1) ? 'Завершить ✓' : 'Продолжить →';
+}
+
+function handleTimeout(){
+  if (answered) return;
+  answered = true;
+
+  const q = QUESTIONS[currentIdx];
+  const buttons = optionsBox.querySelectorAll('.option');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.correct) b.classList.add('correct');
+    else b.classList.add('dim');
+  });
+
+  score += POINTS_WRONG;
+  wrongCount++;
+  totalTime += MAX_TIME;
+  scoreEl.textContent = score;
+
+  explanationText.innerHTML = `<b style="color:var(--red)">Время вышло!</b> ${POINTS_WRONG} очков<br><br>${q.explanation}`;
+  explanation.style.display = 'block';
+  requestAnimationFrame(() => explanation.classList.add('show'));
+  nextBtn.classList.add('show');
+  nextBtn.textContent = (currentIdx === QUESTIONS.length - 1) ? 'Завершить ✓' : 'Продолжить →';
+}
+
+function nextQuestion(){
+  currentIdx++;
+  if (currentIdx >= QUESTIONS.length){
+    finishQuiz();
+  } else {
+    showQuestion();
+  }
+}
+
+function finishQuiz(){
+  quizScreen.classList.add('hidden');
+  finishScreen.classList.remove('hidden');
+
+  $('finalScore').textContent = score;
+  $('statCorrect').textContent = correctCount;
+  $('statWrong').textContent = wrongCount;
+  $('statTime').textContent = totalTime + 'с';
+
+  // звание
+  const pct = score / MAX_SCORE;
+  let rank;
+  if (pct >= 0.9)      rank = '// NLP-ГУРУ 💎';
+  else if (pct >= 0.7) rank = '// ОТЛИЧНО, ИНЖЕНЕР 💠';
+  else if (pct >= 0.5) rank = '// НЕПЛОХО, ПРОДОЛЖАЙ ⚡';
+  else if (pct >= 0.25)rank = '// ЕСТЬ КУДА РАСТИ 🌱';
+  else                 rank = '// ПЕРЕЧИТАЙ КУРС 📚';
+  $('rankText').textContent = rank;
+}
+
+/* ======================= СОБЫТИЯ ======================= */
+$('startBtn').addEventListener('click', startQuiz);
+$('restartBtn').addEventListener('click', startQuiz);
+nextBtn.addEventListener('click', nextQuestion);
+
+// горячие клавиши A/B/C
+document.addEventListener('keydown', e => {
+  if (quizScreen.classList.contains('hidden')) return;
+  if (answered && (e.key === 'Enter' || e.key === ' ')){
+    e.preventDefault();
+    nextQuestion();
+    return;
+  }
+  if (answered) return;
+  const idx = { a:0, b:1, c:2 }[e.key.toLowerCase()];
+  if (idx !== undefined){
+    const btn = optionsBox.querySelectorAll('.option')[idx];
+    if (btn) btn.click();
+  }
+});
+</script>
+</body>
+</html>
